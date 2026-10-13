@@ -1,0 +1,35 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OneCode V0.6.0 Backend API",
+    "version": "0.6.0",
+    "description": "Reference OpenAPI specification for the OneCode fiduciary monolith, including device authorization, reconciliation, fraud review, escrow, and payout workflows."
+  },
+  "servers": [{"url": "https://api.onecode.local"}],
+  "tags": [{"name": "Auth"}, {"name": "Ledger"}, {"name": "Fraud"}, {"name": "Payouts"}, {"name": "Telemetry"}],
+  "paths": {
+    "/oauth/device/code": {"post": {"tags": ["Auth"], "summary": "Create device authorization session", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DeviceAuthorizationRequest"}}}}, "responses": {"200": {"description": "Device code issued", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DeviceAuthorizationResponse"}}}}}}},
+    "/oauth/device/verify": {"post": {"tags": ["Auth"], "summary": "Approve or deny user code", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/VerificationRequest"}}}}, "responses": {"200": {"description": "Verification recorded"}}}},
+    "/oauth/token": {"post": {"tags": ["Auth"], "summary": "Poll token endpoint using device code", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DeviceTokenRequest"}}}}, "responses": {"200": {"description": "Access token", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TokenResponse"}}}}}}},
+    "/ledger/reconcile/run": {"post": {"tags": ["Ledger"], "summary": "Run KPI reconciliation for a reporting batch", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReconcileRequest"}}}}, "responses": {"200": {"description": "Reconciliation outcome", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReconcileResponse"}}}}}}},
+    "/fraud/benford/analyze": {"post": {"tags": ["Fraud"], "summary": "Run Benford screening on a transaction batch", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BenfordRequest"}}}}, "responses": {"200": {"description": "Benford analysis", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BenfordResponse"}}}}}}},
+    "/payouts/escrow/release": {"post": {"tags": ["Payouts"], "summary": "Release held reserve after settlement window", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/EscrowReleaseRequest"}}}}, "responses": {"200": {"description": "Escrow release result"}}}},
+    "/telemetry/bionexus/verify": {"post": {"tags": ["Telemetry"], "summary": "Verify environmental telemetry evidence", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/TelemetryVerificationRequest"}}}}, "responses": {"200": {"description": "Telemetry verification outcome"}}}}
+  },
+  "components": {
+    "schemas": {
+      "DeviceAuthorizationRequest": {"type": "object", "required": ["client_id"], "properties": {"client_id": {"type": "string"}, "scope": {"type": "string", "default": "ledger:read"}, "audience": {"type": "string", "default": "onecode-api"}}},
+      "DeviceAuthorizationResponse": {"type": "object", "required": ["device_code", "user_code", "verification_uri", "verification_uri_complete", "expires_in", "interval"], "properties": {"device_code": {"type": "string"}, "user_code": {"type": "string"}, "verification_uri": {"type": "string", "format": "uri"}, "verification_uri_complete": {"type": "string", "format": "uri"}, "expires_in": {"type": "integer"}, "interval": {"type": "integer"}}},
+      "VerificationRequest": {"type": "object", "required": ["user_code"], "properties": {"user_code": {"type": "string"}, "approved": {"type": "boolean", "default": true}}},
+      "DeviceTokenRequest": {"type": "object", "required": ["grant_type", "device_code", "client_id"], "properties": {"grant_type": {"type": "string", "default": "urn:ietf:params:oauth:grant-type:device_code"}, "device_code": {"type": "string"}, "client_id": {"type": "string"}}},
+      "TokenResponse": {"type": "object", "required": ["access_token", "token_type", "expires_in", "scope"], "properties": {"access_token": {"type": "string"}, "token_type": {"type": "string"}, "expires_in": {"type": "integer"}, "scope": {"type": "string"}}},
+      "ReconcileRequest": {"type": "object", "required": ["batch_id", "reported_session_rpm", "verified_sessions_per_dau", "dau", "reported_revenue"], "properties": {"batch_id": {"type": "string"}, "reported_session_rpm": {"type": "number"}, "verified_sessions_per_dau": {"type": "number"}, "dau": {"type": "integer"}, "reported_revenue": {"type": "number"}}},
+      "ReconcileResponse": {"type": "object", "properties": {"batch_id": {"type": "string"}, "expected_arpdau": {"type": "number"}, "expected_revenue": {"type": "number"}, "variance_ratio": {"type": "number"}, "status": {"type": "string", "enum": ["passed", "monitor", "quarantine", "financial_halt"]}}},
+      "BenfordRequest": {"type": "object", "required": ["amounts"], "properties": {"amounts": {"type": "array", "items": {"type": "number"}}}},
+      "BenfordDigitResult": {"type": "object", "properties": {"digit": {"type": "integer"}, "observed_count": {"type": "integer"}, "observed_proportion": {"type": "number"}, "expected_proportion": {"type": "number"}, "z_statistic": {"type": "number"}, "flagged": {"type": "boolean"}}},
+      "BenfordResponse": {"type": "object", "properties": {"sample_size": {"type": "integer"}, "max_z_statistic": {"type": "number"}, "critical_z": {"type": "number"}, "requires_investigation": {"type": "boolean"}, "digit_results": {"type": "array", "items": {"$ref": "#/components/schemas/BenfordDigitResult"}}}},
+      "EscrowReleaseRequest": {"type": "object", "required": ["account_id", "escrow_id"], "properties": {"account_id": {"type": "string"}, "escrow_id": {"type": "string"}}},
+      "TelemetryVerificationRequest": {"type": "object", "required": ["device_id", "timestamp_utc", "metric", "value", "signature"], "properties": {"device_id": {"type": "string"}, "timestamp_utc": {"type": "string", "format": "date-time"}, "metric": {"type": "string"}, "value": {"type": "number"}, "signature": {"type": "string"}}}
+    }
+  }
+}

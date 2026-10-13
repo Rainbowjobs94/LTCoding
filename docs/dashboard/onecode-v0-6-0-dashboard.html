@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OneCode V0.6.0 KPI Reconcile Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background:#0b1220; color:#e5e7eb; }
+    header { padding: 20px 24px; border-bottom:1px solid #243041; }
+    .grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:16px; padding:16px; }
+    .card { background:#111827; border:1px solid #243041; border-radius:12px; padding:12px; }
+    .full { grid-column:1 / -1; }
+    @media (max-width: 900px){ .grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <header><h1>OneCode V0.6.0 KPI Reconcile Dashboard</h1><p>Illustrative sample data: processor vs core ledger, variance, Benford screening, and 75/25 payout reserve.</p></header>
+  <section class="grid">
+    <div class="card"><div id="ledgerBars" style="height:360px"></div></div>
+    <div class="card"><div id="varianceLine" style="height:360px"></div></div>
+    <div class="card"><div id="benfordChart" style="height:360px"></div></div>
+    <div class="card"><div id="payoutPie" style="height:360px"></div></div>
+  </section>
+<script>
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const processor = [1600,1700,1800,1760,1900,2050,1750];
+  const core = [1550,1660,1750,1710,1820,1920,1470];
+  const variance = processor.map((v,i)=> ((Math.abs(v-core[i])/core[i])*100).toFixed(2));
+  const layout = {paper_bgcolor:'#111827', plot_bgcolor:'#111827', font:{color:'#e5e7eb'}};
+  Plotly.newPlot('ledgerBars', [
+    {x:days, y:processor, name:'Processor Ledger', type:'bar', marker:{color:'#38bdf8'}},
+    {x:days, y:core, name:'Core Ledger', type:'bar', marker:{color:'#22c55e'}}
+  ], {...layout, title:'Ledger Comparison', barmode:'group'});
+  Plotly.newPlot('varianceLine', [{x:days, y:variance, type:'scatter', mode:'lines+markers', line:{color:'#f59e0b'}}], {...layout, title:'Variance % by Day'});
+  Plotly.newPlot('benfordChart', [
+    {x:['1','2','3','4','5','6','7','8','9'], y:[30.1,17.6,12.5,9.7,7.9,6.7,5.8,5.1,4.6], type:'scatter', mode:'lines+markers', name:'Expected'},
+    {x:['1','2','3','4','5','6','7','8','9'], y:[24,14,11,10,8,8,7,7,11], type:'bar', name:'Observed (sample)', marker:{color:'#a78bfa'}}
+  ], {...layout, title:'Benford Screening'});
+  Plotly.newPlot('payoutPie', [{labels:['User Available 75%','Honesty Escrow 25%'], values:[75,25], type:'pie'}], {paper_bgcolor:'#111827', font:{color:'#e5e7eb'}, title:'Payout Split'});
+</script>
+</body>
+</html>
