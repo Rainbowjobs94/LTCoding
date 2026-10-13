@@ -49,7 +49,7 @@ def benford_z_statistic(
 
 
 def analyze_benford(amounts: Iterable[float]) -> dict:
-    """Screening signal only; a flag is an investigation trigger, not proof of fraud."""
+    """Screening test only: a flag is an investigation trigger, not proof of fraud."""
     values = [float(v) for v in amounts if math.isfinite(float(v)) and float(v) > 0]
     if len(values) < 100:
         raise ValueError("Need at least 100 positive values")

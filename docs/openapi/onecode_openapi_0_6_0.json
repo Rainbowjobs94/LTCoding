@@ -3,7 +3,7 @@
   "info": {
     "title": "OneCode V0.6.0 Backend API",
     "version": "0.6.0",
-    "description": "Reference OpenAPI specification for the OneCode fiduciary monolith, including device authorization, reconciliation, fraud review, escrow, and payout workflows."
+    "description": "Reference OpenAPI specification for the OneCode fiduciary monolith: device authorization, reconciliation, fraud review, escrow, and telemetry verification."
   },
   "servers": [{"url": "https://api.onecode.local"}],
   "tags": [{"name": "Auth"}, {"name": "Ledger"}, {"name": "Fraud"}, {"name": "Payouts"}, {"name": "Telemetry"}],
