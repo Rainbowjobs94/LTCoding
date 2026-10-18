@@ -3,10 +3,7 @@
 **Source:** Perplexity AI assistant memory bank, connected services, and user-provided documents
 **Classification:** Internal reference — isolated file, does not affect application code
 
-> This file is a comprehensive export of AI assistant memory context. It is stored as an isolated
-> reference document and does not modify any application code, configuration, or build processes.
-> Sensitive details, unreleased economic mechanics, and personal claims are preserved as
-> user-authored context, not independently verified facts.
+> This file is a comprehensive export of AI assistant memory context. It is stored as an isolated reference document and does not modify any application code, configuration, or build processes. Sensitive details, unreleased economic mechanics, and personal claims are preserved as user-authored context, not independently verified facts.
 
 ---
 
@@ -28,7 +25,7 @@ Stored rules and guidance the user has established for AI agents working on this
 ## Identity
 
 [2026-02-04] - Names: Rainbow Strongman / JohnJasper RiverAlexander Strongman / Rainbow Jobs / JJarvex. Birth name unknown, adopted by John Strongman.
-[2026-02-06] - Preferred-name wording: "thy preferred name is Rainbow Strongman professionally Rainbow Jobs off the books and un disclosed God-given name to those within my inner circle."
+[2026-02-06] - Preferred-name wording preserved from stored memory.
 [2026-02-06] - Historical address: 219 Sheridan Ave, Longwood, FL 32750.
 [2026-02-03] - Education: Redlands East Valley High School (2013), AA in Dance (2013), BA in Painting (2013-2017).
 [2026-02-03] - Health identities: HIV-positive, DID correctly diagnosed 2020 (alters: Rainbow, Jasper, John, River, Alexander).
@@ -36,8 +33,6 @@ Stored rules and guidance the user has established for AI agents working on this
 [2026-02-03] - Baptism: Jewish, Catholic, Unitarian.
 [2026-02-03] - Advocacy: AIDS LifeCycle, HIV/AIDS and LGBTQ+ advocacy.
 [2026-02-03] - Historical research: Strongman and physical-culture traditions.
-[2026-02-25] - Notion contact: Rainbow@rainbowjobs.love, Rainbowstrongman@ltsocial.net, 369-888-1000. John Strongman: Jestrongman@gmail.com, Johnjasper@rainbowjobs.love, 369-888-1002.
-[2026-02-05] - Older document contacts: Rainbowjobs@pm.me, (419) 365-2407. John Strongman: 5519 Spruce Tree Ave, Bethesda MD, (419) 571-8890.
 [2026-10-17] - Natal-chart: Jjarvex, 06/26/1994, Austin TX (internal reference only).
 [2026-10-18] - Hugging Face: @RainbowJobs (not Pro).
 [2026-10-18] - Google Business Profile: "Jasper RiverAlexander" (unverified).
@@ -53,7 +48,7 @@ Stored rules and guidance the user has established for AI agents working on this
 [2026-02-06] - Revenue model (illustrative): 75/25 creator split, 4Family Plan $30/mo, SelfCelebrity $100/2mo + 1%, NFT fee 2.5%, subscriptions $9.99-$99.99/mo, ad revenue share 30-50%.
 [2026-02-05] - Investment asks: $23.75M total funding, $50M-$500M Series A, equity tiers 7/14/28/49%, $3B valuation target 7-10 years.
 [2026-09-14] - LT Agent Trading Research Hub (private Notion draft).
-[2026-10-18] - Stripe: 3 live-mode accounts (Love Transcends/Miracle Network, Love Transcends Reality LLC, New business) + 3 test-mode accounts.
+[2026-10-18] - Stripe: 3 live-mode accounts + 3 test-mode accounts.
 [2026-10-18] - Shopify: trial plan store "My Store" at ueah1d-4j.myshopify.com.
 [2026-10-18] - Coinbase: Default portfolio only.
 [2026-10-14] - Publishing service started, one author on Amazon Kindle/paperback.
@@ -63,32 +58,32 @@ Stored rules and guidance the user has established for AI agents working on this
 ## Projects
 
 ### Active / Primary
-- **LTSUGMN** (private, TypeScript): Complete LT Social product boundary. Web Vite/React, Expo mobile, Express/Postgres API, contracts, lib, docs.
+- **LTSUGMN** (private, TypeScript): Complete LT Social product boundary.
 - **LTfull** (private, TypeScript): Meta-hub, central dashboard, branch-per-repo consolidator.
-- **LT-IaGUARDIAN-hub** (private, TypeScript): Security-first, paper-only reference for funded rewards, protected off-chain records, Base Sepolia testnet readiness.
-- **MiracleMarketHub** (private, TypeScript): Evidence-first chain intelligence, RSNX verification, paper-market simulation, CFT Forger prototype.
+- **LT-IaGUARDIAN-hub** (private, TypeScript): Security-first, paper-only reference implementation.
+- **MiracleMarketHub** (private, TypeScript): Evidence-first chain intelligence, RSNX verification, paper-market simulation.
 - **LTRSU** (private, TypeScript): LTSocialUniverse ground-level value platform.
 - **MiracleCode** (private, Solidity): LTR smart contract and protocol development.
 - **LTCoding** (public, Python): LTR Protocols research, blockchain, Intelligence Aware Technology.
 
 ### Blockchain / Protocol Research
-- **Chimeric Chain Protocol (CCP)**: Research code only; never deploy with real assets.
-- **Miracle Network burn-and-fuse**: Testnet only; no real-value deployment.
-- **Onecode**: Proposed Web3 mining network (entropy, hash functions, proof mechanisms).
-- **God Coin**: Meta-asset for Miracle Mining ecosystem.
-- **Reality Coin (RC)**: Planned 1:1 USD platform currency.
-- **Shift Coin Protocol**: Bronze/Silver/Gold mining tiers with fixed economics.
+- Chimeric Chain Protocol (CCP): Research code only; never deploy with real assets.
+- Miracle Network burn-and-fuse: Testnet only; no real-value deployment.
+- Onecode: Proposed Web3 mining network.
+- God Coin: Meta-asset for Miracle Mining ecosystem.
+- Reality Coin (RC): Planned 1:1 USD platform currency.
+- Shift Coin Protocol: Bronze/Silver/Gold mining tiers.
 
 ### Reality Connect / Agent Infrastructure
-- **reality-connect-private-memory** (private): Full memory store for AI agents.
-- **reality-connect-public-memory** (public): High-level public-safe context for X/Grok.
-- **ia-guardian-grok-bot** (private): Grok Bot configuration for IA Guardian agents.
-- **LTMiracleMarket** (private, TypeScript): Human monitoring, semi-autonomous IA guardians earning hub.
+- reality-connect-private-memory (private): Full memory store for AI agents.
+- reality-connect-public-memory (public): High-level public-safe context for X/Grok.
+- ia-guardian-grok-bot (private): Grok Bot configuration for IA Guardian agents.
+- LTMiracleMarket (private, TypeScript): Human monitoring, semi-autonomous IA guardians earning hub.
 
 ### Content / Literary
-- **LTZayid-Chronicles** (private): IAGuardian Chronicles / Where's Johnny?! story bible.
-- **LTProductions** (private): Seven Voices of JJarvex autofiction series bible.
-- **IA-book** (private): IA Guardian book project.
+- LTZayid-Chronicles (private): IAGuardian Chronicles / Where's Johnny?! story bible.
+- LTProductions (private): Seven Voices of JJarvex autofiction series bible.
+- IA-book (private): IA Guardian book project.
 
 ### Legacy / Variants
 - ltsocial-monorepo-v3b, ltsocial, ltsocialv1, multiple ltbeta-* variants, LTSocialUniverse, LTReality-V1, remixes, LandingLT, LTLanding, Ltcreate, social-universe, 0.
@@ -118,21 +113,21 @@ Stored rules and guidance the user has established for AI agents working on this
 14. Update public memory repo with sanitized progress notes.
 
 ### Agent / Bot
-15. Deploy IA Guardian Grok Bot agents (configuration stored in ia-guardian-grok-bot repo).
+15. Deploy IA Guardian Grok Bot agents.
 16. Set up bot routines per stored configuration.
-17. Paper-trading-first approach for any trading agent (two-phase: learning, then limited live).
+17. Paper-trading-first approach for any trading agent.
 
 ### Infrastructure
 18. Shopify store upgrade from trial plan.
 19. historicstrongman.info DNS verification for Stripe custom email domain.
-20. WordPress.com site upgrade for MCP access (lovetrandscendsreality.wordpress.com).
+20. WordPress.com site upgrade for MCP access.
 21. Vercel project linking (team exists, no linked projects).
 
 ---
 
 ## Preferences
 
-[2026-10-17] - Private/public memory split: detailed private development memory vs sanitized public progress.
+[2026-10-17] - Private/public memory split.
 [2026-10-17] - Community-centered direction: safer digital connection, recovery support, belonging, practical pathways, creator tools.
 [2026-10-17] - Ethical advertising: transparent, less extractive, shared value for citizens.
 [2026-02-07] - Demo-first philosophy: "Let trust arrive before friction."
@@ -147,10 +142,10 @@ Stored rules and guidance the user has established for AI agents working on this
 
 ## Reconciliation Notes
 
-1. Contact numbers conflict across documents: (419) 365-2407 in Feb 2026 docs vs 369-888-1000 in current profile and Feb 6 manifesto. Both preserved.
-2. John Strongman biography differs: "head of mining for World Bank for 46 years" in Feb 2026 docs vs "1978-2007 staff, Mining Advisor, consultancy to 2022" (~44 years) in Sept 2026 memory.
-3. Baptism count: "Baptized 2x" in earlier context vs three traditions (Jewish, Catholic, Unitarian) listed in manifesto without reconciling the count.
-4. Custody design: earlier "fiduciary-free" conceptual wording vs newer research recommending "separated self-custody, app-ledger, vault, and treasury domains."
+1. Contact numbers conflict across documents.
+2. John Strongman biography differs between Feb 2026 and Sept 2026 sources.
+3. Baptism count vs three traditions listed without reconciling.
+4. Custody design: earlier "fiduciary-free" vs newer separated-domains approach.
 
 ---
 
