@@ -3,8 +3,9 @@ from __future__ import annotations
 import math
 import random
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Any
 
 CRITICAL_Z = 1.96
 
@@ -39,16 +40,12 @@ def benford_expected_probability(digit: int) -> float:
 def benford_z_statistic(
     observed_proportion: float, expected_proportion: float, sample_size: int
 ) -> float:
-    standard_error = math.sqrt(
-        expected_proportion * (1 - expected_proportion) / sample_size
-    )
-    numerator = max(
-        0.0, abs(observed_proportion - expected_proportion) - 1 / (2 * sample_size)
-    )
+    standard_error = math.sqrt(expected_proportion * (1 - expected_proportion) / sample_size)
+    numerator = max(0.0, abs(observed_proportion - expected_proportion) - 1 / (2 * sample_size))
     return numerator / standard_error if standard_error else 0.0
 
 
-def analyze_benford(amounts: Iterable[float]) -> dict:
+def analyze_benford(amounts: Iterable[float]) -> dict[str, Any]:
     """Screening test only: a flag is an investigation trigger, not proof of fraud."""
     values = [float(v) for v in amounts if math.isfinite(float(v)) and float(v) > 0]
     if len(values) < 100:
@@ -73,17 +70,17 @@ def analyze_benford(amounts: Iterable[float]) -> dict:
 
 
 def generate_benford_like_data(size: int, seed: int = 42) -> list[float]:
-    random.seed(seed)
-    return [10 ** random.uniform(-2, 6) for _ in range(size)]
+    rng = random.Random(seed)
+    return [10 ** rng.uniform(-2, 6) for _ in range(size)]
 
 
 def generate_synthetic_data(size: int, seed: int = 99) -> list[float]:
-    random.seed(seed)
-    return [random.uniform(90.0, 99.99) for _ in range(size)]
+    rng = random.Random(seed)
+    return [rng.uniform(90.0, 99.99) for _ in range(size)]
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     legit = analyze_benford(generate_benford_like_data(5000))
     synth = analyze_benford(generate_synthetic_data(5000))
-    print("legit_max_z=", round(legit["max_z_statistic"], 4), "flag=", legit["requires_investigation"])
-    print("synth_max_z=", round(synth["max_z_statistic"], 4), "flag=", synth["requires_investigation"])
+    print(f"natural: max_z={legit['max_z_statistic']:.2f} flag={legit['requires_investigation']}")
+    print(f"synthetic: max_z={synth['max_z_statistic']:.2f} flag={synth['requires_investigation']}")

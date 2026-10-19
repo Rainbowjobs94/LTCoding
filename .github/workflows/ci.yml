@@ -13,5 +13,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pytest pytest-cov
-      - run: python -m pytest
+      - run: pip install pytest pytest-cov mypy openapi-spec-validator
+      - name: Type check
+        run: mypy
+      - name: Validate OpenAPI contract
+        run: python -c "import json; from openapi_spec_validator import validate; validate(json.load(open('docs/openapi/onecode_openapi_0_6_0.json')))"
+      - name: Tests
+        run: python -m pytest

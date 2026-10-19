@@ -1,18 +1,16 @@
 [project]
 name = "ltcoding"
 version = "0.6.0"
-description = "OneCode reference assets: Benford screening, OpenAPI contract, dashboard."
+description = "OneCode reference assets: Benford screening, reconciliation, device flow, OpenAPI contract."
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.5", "mypy>=1.10"]
+dev = ["pytest>=8", "pytest-cov>=5", "mypy>=1.10", "openapi-spec-validator>=0.7"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=tools --cov-report=term-missing --cov-fail-under=90"
-
-[tool.ruff]
-line-length = 100
+addopts = "--cov=tools --cov=onecode --cov-report=term-missing --cov-fail-under=90"
 
 [tool.mypy]
 strict = true
+files = ["onecode", "tools"]
