@@ -8,19 +8,22 @@ on:
 permissions: {}
 
 jobs:
-  grok_auth:
+  probe:
+    name: xAI metadata probe
     if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    outputs:
+      result: ${{ steps.auth.outputs.result }}
     steps:
-      - name: Validate xAI API authentication without inference or tool execution
+      - name: Classify authentication without inference or secret output
+        id: auth
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
           python3 - <<'PY'
           import json
           import os
-          import sys
           from urllib.error import HTTPError, URLError
           from urllib.request import Request, HTTPRedirectHandler, build_opener
 
@@ -28,35 +31,50 @@ jobs:
               def redirect_request(self, *args, **kwargs):
                   return None
 
-          def probe(key):
+          def classify(key):
               key = key.strip()
               if not key:
-                  raise RuntimeError("XAI_API_KEY is unavailable to this job. Check the Actions secret name and scope.")
+                  return "missing_secret"
               if any(character.isspace() for character in key):
-                  raise RuntimeError("XAI_API_KEY contains embedded whitespace. Correct the secret without printing it.")
+                  return "malformed_secret"
               request = Request("https://api.x.ai/v1/models", headers={"Authorization": "Bearer " + key, "Accept": "application/json"}, method="GET")
               try:
                   with build_opener(NoRedirects()).open(request, timeout=20) as response:
                       raw = response.read(1000001)
               except HTTPError as error:
-                  hints = {401: "Key rejected or revoked.", 403: "Key permissions or account policy denied access.", 429: "Rate limit or account limit reached."}
-                  raise RuntimeError("xAI authentication preflight failed: HTTP " + str(error.code) + ". " + hints.get(error.code, "Inspect provider status and configuration.")) from None
+                  return {401: "key_rejected", 402: "billing_rejected", 403: "permission_denied", 429: "rate_or_account_limit"}.get(error.code, "provider_http_error")
               except (URLError, TimeoutError):
-                  raise RuntimeError("xAI could not be reached. Check provider availability and network policy.") from None
+                  return "network_error"
               if len(raw) > 1000000:
-                  raise RuntimeError("xAI response exceeded the bounded metadata limit.")
+                  return "response_too_large"
               try:
                   payload = json.loads(raw)
               except (ValueError, UnicodeError):
-                  raise RuntimeError("xAI returned invalid metadata; no response body was logged.") from None
+                  return "invalid_metadata"
               if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
-                  raise RuntimeError("xAI returned unexpected model metadata; no response body was logged.")
-              return "xAI accepted XAI_API_KEY for model listing. Inference, billing, CLI login and code review remain unverified."
+                  return "unexpected_metadata"
+              return "authenticated"
 
           if __name__ == "__main__":
-              try:
-                  print(probe(os.environ.get("XAI_API_KEY", "")))
-              except RuntimeError as error:
-                  print("::error::" + str(error))
-                  sys.exit(1)
+              result = classify(os.environ.get("XAI_API_KEY", ""))
+              with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+                  output.write("result=" + result + "\n")
+              print("Authentication classification: " + result)
           PY
+
+  grok_auth:
+    name: Grok auth - ${{ needs.probe.outputs.result || 'probe_unavailable' }}
+    needs: probe
+    if: always() && needs.probe.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fail authentication gate unless the provider accepted the key
+        env:
+          AUTH_RESULT: ${{ needs.probe.outputs.result || 'probe_unavailable' }}
+        run: |
+          if [ "$AUTH_RESULT" != "authenticated" ]; then
+            echo "::error::Grok authentication is not verified. See the fixed classification in this check name."
+            exit 1
+          fi
+          echo "Model-listing authentication passed. Inference, billing, CLI login and code review are not verified."
