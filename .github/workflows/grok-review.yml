@@ -1,16 +1,62 @@
-name: grok-review
-on: pull_request
+name: Grok authentication preflight
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
 jobs:
-  review:
+  grok_auth:
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
-      - run: curl -fsSL https://x.ai/cli/install.sh | bash
-      - run: echo "$HOME/.grok/bin" >> $GITHUB_PATH
-      - run: grok -p "Review this PR for bugs" --always-approve
+      - name: Validate xAI API authentication without inference or tool execution
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
-          GH_TOKEN: ${{ github.token }} # lets grok post the review
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, HTTPRedirectHandler, build_opener
+
+          class NoRedirects(HTTPRedirectHandler):
+              def redirect_request(self, *args, **kwargs):
+                  return None
+
+          def probe(key):
+              key = key.strip()
+              if not key:
+                  raise RuntimeError("XAI_API_KEY is unavailable to this job. Check the Actions secret name and scope.")
+              if any(character.isspace() for character in key):
+                  raise RuntimeError("XAI_API_KEY contains embedded whitespace. Correct the secret without printing it.")
+              request = Request("https://api.x.ai/v1/models", headers={"Authorization": "Bearer " + key, "Accept": "application/json"}, method="GET")
+              try:
+                  with build_opener(NoRedirects()).open(request, timeout=20) as response:
+                      raw = response.read(1000001)
+              except HTTPError as error:
+                  hints = {401: "Key rejected or revoked.", 403: "Key permissions or account policy denied access.", 429: "Rate limit or account limit reached."}
+                  raise RuntimeError("xAI authentication preflight failed: HTTP " + str(error.code) + ". " + hints.get(error.code, "Inspect provider status and configuration.")) from None
+              except (URLError, TimeoutError):
+                  raise RuntimeError("xAI could not be reached. Check provider availability and network policy.") from None
+              if len(raw) > 1000000:
+                  raise RuntimeError("xAI response exceeded the bounded metadata limit.")
+              try:
+                  payload = json.loads(raw)
+              except (ValueError, UnicodeError):
+                  raise RuntimeError("xAI returned invalid metadata; no response body was logged.") from None
+              if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
+                  raise RuntimeError("xAI returned unexpected model metadata; no response body was logged.")
+              return "xAI accepted XAI_API_KEY for model listing. Inference, billing, CLI login and code review remain unverified."
+
+          if __name__ == "__main__":
+              try:
+                  print(probe(os.environ.get("XAI_API_KEY", "")))
+              except RuntimeError as error:
+                  print("::error::" + str(error))
+                  sys.exit(1)
+          PY
