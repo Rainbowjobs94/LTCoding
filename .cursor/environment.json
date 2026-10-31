@@ -1,0 +1,5 @@
+{
+  "name": "LTCoding OneCode",
+  "user": "ubuntu",
+  "install": "bash .cursor/cloud-agent-install.sh"
+}
