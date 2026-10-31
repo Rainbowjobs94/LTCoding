@@ -1,7 +1,16 @@
-name: grok-review
-on: pull_request
+name: Grok authentication preflight
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
 jobs:
-  review:
+  probe:
+    name: xAI metadata probe
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-latest
     if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
