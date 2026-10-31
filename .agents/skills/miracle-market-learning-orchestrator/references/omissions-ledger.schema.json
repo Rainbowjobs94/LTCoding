@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Miracle Market omissions ledger entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "capability",
+    "state",
+    "reason",
+    "evidence",
+    "dependency",
+    "owner",
+    "next_review"
+  ],
+  "properties": {
+    "capability": { "type": "string", "minLength": 1 },
+    "state": {
+      "enum": ["implemented", "proposed", "blocked", "unavailable"]
+    },
+    "reason": { "type": "string", "minLength": 1 },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "dependency": { "type": "string" },
+    "owner": { "type": "string" },
+    "next_review": { "type": "string" },
+    "rollback_target": { "type": "string" }
+  }
+}

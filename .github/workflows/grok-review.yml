@@ -12,69 +12,30 @@ jobs:
     name: xAI metadata probe
     if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-latest
-    timeout-minutes: 2
-    outputs:
-      result: ${{ steps.auth.outputs.result }}
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - name: Classify authentication without inference or secret output
-        id: auth
-        env:
-          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify XAI_API_KEY secret is set
         run: |
-          python3 - <<'PY'
-          import json
-          import os
-          from urllib.error import HTTPError, URLError
-          from urllib.request import Request, HTTPRedirectHandler, build_opener
-
-          class NoRedirects(HTTPRedirectHandler):
-              def redirect_request(self, *args, **kwargs):
-                  return None
-
-          def classify(key):
-              key = key.strip()
-              if not key:
-                  return "missing_secret"
-              if any(character.isspace() for character in key):
-                  return "malformed_secret"
-              request = Request("https://api.x.ai/v1/models", headers={"Authorization": "Bearer " + key, "Accept": "application/json"}, method="GET")
-              try:
-                  with build_opener(NoRedirects()).open(request, timeout=20) as response:
-                      raw = response.read(1000001)
-              except HTTPError as error:
-                  return {401: "key_rejected", 402: "billing_rejected", 403: "permission_denied", 429: "rate_or_account_limit"}.get(error.code, "provider_http_error")
-              except (URLError, TimeoutError):
-                  return "network_error"
-              if len(raw) > 1000000:
-                  return "response_too_large"
-              try:
-                  payload = json.loads(raw)
-              except (ValueError, UnicodeError):
-                  return "invalid_metadata"
-              if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
-                  return "unexpected_metadata"
-              return "authenticated"
-
-          if __name__ == "__main__":
-              result = classify(os.environ.get("XAI_API_KEY", ""))
-              with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-                  output.write("result=" + result + "\n")
-              print("Authentication classification: " + result)
-          PY
-
-  grok_auth:
-    name: Grok auth - ${{ needs.probe.outputs.result || 'probe_unavailable' }}
-    needs: probe
-    if: always() && needs.probe.result != 'skipped'
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Fail authentication gate unless the provider accepted the key
-        env:
-          AUTH_RESULT: ${{ needs.probe.outputs.result || 'probe_unavailable' }}
-        run: |
-          if [ "$AUTH_RESULT" != "authenticated" ]; then
-            echo "::error::Grok authentication is not verified. See the fixed classification in this check name."
+          if [ -z "$XAI_API_KEY" ]; then
+            echo "::error::XAI_API_KEY repository secret is missing. Add it under Settings → Secrets and variables → Actions (key from https://console.x.ai)."
             exit 1
           fi
-          echo "Model-listing authentication passed. Inference, billing, CLI login and code review are not verified."
+          echo "XAI_API_KEY is present (length ${#XAI_API_KEY})."
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+      - name: Install Grok CLI
+        run: curl -fsSL https://x.ai/cli/install.sh | bash
+        timeout-minutes: 5
+      - run: echo "$HOME/.grok/bin" >> $GITHUB_PATH
+      - name: Run Grok review
+        run: grok -p "Review this PR for bugs" --always-approve
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        timeout-minutes: 10

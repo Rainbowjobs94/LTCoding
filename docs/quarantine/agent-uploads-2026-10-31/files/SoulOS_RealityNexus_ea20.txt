@@ -1,0 +1,961 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Cpu, Shield, Terminal, Globe, Lock, Play, RefreshCw, 
+  Settings, CheckCircle2, AlertTriangle, Layers, Zap, Eye,
+  Activity, Server, HardDrive, Wifi, CornerDownRight, Unlock,
+  Sun, Moon, Monitor, Share, Bookmark, Flag, VolumeX,
+  Coins, Pickaxe, Download, ChevronRight, X, MessageSquare, Heart,
+  MoreVertical
+} from 'lucide-react';
+
+const INITIAL_POSTS = [
+  {
+    id: 1,
+    author: 'Rainbow Strongman',
+    handle: '@rainbowjobs',
+    content: 'The BioNexus Protocol is officially live. We are shifting consensus from industrial server farms to verified human presence. #DePIN #RealityNexus',
+    timestamp: '2 mins ago',
+    likes: 124,
+    comments: 12,
+    isMinted: true,
+    isShiftMined: false,
+    scValue: 50.00,
+    bookmarked: false
+  },
+  {
+    id: 2,
+    author: 'IA_Guardian',
+    handle: '@iaguardian',
+    content: 'System Alert: Sub-second anomaly detected in Node 4. Auto-quarantine initiated via CodeBow protocols. System remains 100% secure.',
+    timestamp: '1 hour ago',
+    likes: 89,
+    comments: 4,
+    isMinted: false,
+    isShiftMined: true,
+    scValue: 250.00,
+    bookmarked: true
+  }
+];
+
+export default function App() {
+  // Global System State
+  const [activeLayer, setActiveLayer] = useState('welcome');
+  const [bootLog, setBootLog] = useState([
+    '[INIT] SOO Core v0.6.0-alpha booting...',
+    '[SEC] SELinux enforcing, sVirt labels applied.',
+    '[VM] KVM / QEMU hypervisor initialized successfully.',
+    '[GATE] Screen Gate Daemon listening on secure SPICE socket.'
+  ]);
+  const [selectedWorkspace, setSelectedWorkspace] = useState('linux');
+  const [hybridMode, setHybridMode] = useState(false);
+  const [aiMirrorActive, setAiMirrorActive] = useState(true);
+
+  // Theme & Sensor State
+  const [themeMode, setThemeMode] = useState('dark'); // light, dark, system, sensor
+  const [luxReading, setLuxReading] = useState(120);
+  const [isSensorActive, setIsSensorActive] = useState(false);
+
+  const [wallet, setWallet] = useState({ usd: 1500.00, rc: 1450.25, sc: 125.00, eth: 2.5 });
+  const [scHolding, setScHolding] = useState({ active: true, entryValue: 100, currentValue: 145.50, ceiling: 500, isOnChain: false });
+  const [miningActive, setMiningActive] = useState(false);
+  const [hashRate, setHashRate] = useState(1450.2);
+  const [marketData, setMarketData] = useState({
+    btc: { price: 64200.50, change: +2.4, entropy: 42.1 },
+    eth: { price: 3450.20, change: -1.2, entropy: 55.4 },
+    rc: { price: 0.125, change: +18.5, entropy: 88.9 }
+  });
+
+  const [posts, setPosts] = useState(INITIAL_POSTS);
+  const [activeModal, setActiveModal] = useState(null); // 'mint', 'shiftMine', 'buyFiat', 'buyEth', null
+  const [selectedPostId, setSelectedPostId] = useState(null);
+  const [sharePanelOpen, setSharePanelOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [toast, setToast] = useState('');
+  
+  const [huggingFaceApiKey, setHuggingFaceApiKey] = useState('');
+  const [hfStatus, setHfStatus] = useState('Not Configured');
+
+  useEffect(() => {
+    let interval;
+    if (miningActive) {
+      interval = setInterval(() => {
+        setWallet(prev => ({ ...prev, rc: prev.rc + 0.05 }));
+        setHashRate(prev => +(prev + (Math.random() * 10 - 5)).toFixed(1));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [miningActive]);
+
+  useEffect(() => {
+    let sensorInterval;
+    if (themeMode === 'sensor') {
+      setIsSensorActive(true);
+      sensorInterval = setInterval(() => {
+        const newLux = Math.max(10, Math.min(1000, luxReading + (Math.random() * 40 - 20)));
+        setLuxReading(newLux);
+      }, 2000);
+    } else {
+      setIsSensorActive(false);
+    }
+    return () => clearInterval(sensorInterval);
+  }, [themeMode, luxReading]);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleBootWorkspace = (workspace) => {
+    setSelectedWorkspace(workspace);
+    setActiveLayer('workspace');
+    setBootLog(prev => [...prev, `[BOOT] Transitioning to Workspace: ${workspace.toUpperCase()}`]);
+  };
+
+  const handleSaveHfKey = () => {
+    if (huggingFaceApiKey.trim().length > 5) {
+      setHfStatus('Connected & Verified');
+      showToast('Hugging Face API connected.');
+    } else {
+      setHfStatus('Invalid Key');
+    }
+  };
+
+  const handleBuySC = (method, amount) => {
+    if (method === 'fiat') {
+      if (wallet.usd < amount) return showToast('Insufficient USD balance');
+      setWallet(prev => ({ ...prev, usd: prev.usd - amount }));
+      // Rule 1: 2x Entry Value for Fiat
+      const newValue = amount * 2;
+      setScHolding({
+        active: true,
+        entryValue: newValue,
+        currentValue: newValue,
+        ceiling: amount * 10,
+        isOnChain: false // Requires sale to confirm
+      });
+      showToast(`SC Issued! Paid $${amount}, In-network value $${newValue}`);
+    } else if (method === 'eth') {
+      if (wallet.eth < amount) return showToast('Insufficient ETH balance');
+      setWallet(prev => ({ ...prev, eth: prev.eth - amount }));
+      // Rule 3: ETH gets 2x value AND immediate on-chain status
+      const usdEquiv = amount * 3000; // Mock ETH price
+      const newValue = usdEquiv * 2;
+      setScHolding({
+        active: true,
+        entryValue: newValue,
+        currentValue: newValue,
+        ceiling: usdEquiv * 10,
+        isOnChain: true 
+      });
+      showToast(`ETH Received! SC is instantly On-Chain. Value: $${newValue}`);
+    }
+    setActiveModal(null);
+  };
+
+  const handleTipPost = (postId, amount) => {
+    if (wallet.usd < amount) return showToast('Insufficient funds to tip.');
+    setWallet(prev => ({ ...prev, usd: prev.usd - amount }));
+    
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        // Rule 2: Tip adds exactly 1:1 to SC Value
+        return { ...p, scValue: p.scValue + amount };
+      }
+      return p;
+    }));
+    showToast(`Tipped $${amount}! Creator's SC value increased 1:1.`);
+  };
+
+  const handleAction = (action, postId) => {
+    setSelectedPostId(postId);
+    setOpenMenuId(null); // Close menu
+    
+    if (action === 'bookmark') {
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, bookmarked: !p.bookmarked } : p));
+      showToast(posts.find(p => p.id === postId).bookmarked ? 'Bookmark removed' : 'Bookmarked!');
+    } else if (action === 'delete') {
+      const post = posts.find(p => p.id === postId);
+      if (post.isMinted || post.isShiftMined) return showToast('Cannot delete permanent/mined posts.');
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      showToast('Post deleted');
+    } else if (action === 'mute' || action === 'report') {
+      showToast(`User ${action}ed successfully.`);
+    } else if (action === 'mint' || action === 'shiftMine') {
+      setActiveModal(action);
+    } else if (action === 'share') {
+      setSharePanelOpen(true);
+    }
+  };
+
+  const confirmMint = () => {
+    setPosts(prev => prev.map(p => p.id === selectedPostId ? { ...p, isMinted: true } : p));
+    setActiveModal(null);
+    showToast('Post Minted! Now listed in LTNFThifty marketplace.');
+  };
+
+  const confirmShiftMine = () => {
+    setPosts(prev => prev.map(p => p.id === selectedPostId ? { ...p, isShiftMined: true } : p));
+    setWallet(prev => ({ ...prev, sc: prev.sc + 5 }));
+    setActiveModal(null);
+    showToast('Post Shift Mined! Permanent Proof-of-Reality recorded. +5 SC');
+  };
+
+  const isDarkMode = themeMode === 'dark' || (themeMode === 'sensor' && luxReading < 50);
+
+  return (
+    <div className={isDarkMode ? 'dark' : ''}>
+      <div className="min-h-screen font-sans transition-colors duration-300 bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 selection:bg-purple-500/30 selection:text-purple-900 dark:selection:text-purple-200">
+        
+        {/* Global Toast */}
+        {toast && (
+          <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
+            <div className="bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 font-medium">
+              <CheckCircle2 className="w-5 h-5" /> {toast}
+            </div>
+          </div>
+        )}
+
+        <div className="border-b px-4 py-2 flex flex-wrap items-center justify-between text-xs font-mono bg-white border-slate-200 dark:bg-slate-900/90 dark:border-slate-800 transition-colors">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 font-bold">
+              <Cpu className="w-4 h-4 animate-pulse" /> SOO v0.6.0
+            </span>
+            <span className="hidden sm:inline text-slate-400 dark:text-slate-500">|</span>
+            <span className={`px-2 py-0.5 rounded text-[10px] ${hybridMode ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'}`}>
+              <Shield className="w-3 h-3 inline mr-1" />
+              {hybridMode ? 'HYBRID (RISKY)' : 'KVM ISOLATED'}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-4 mt-2 sm:mt-0">
+            <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+              USD: <span className="font-bold text-emerald-600 dark:text-emerald-400">${wallet.usd.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+              <Activity className="w-3.5 h-3.5 text-blue-500" /> RC: <span className="font-bold text-blue-600 dark:text-blue-400">{wallet.rc.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+              <Zap className="w-3.5 h-3.5 text-purple-500" /> SC: <span className="font-bold text-purple-600 dark:text-purple-400">{wallet.sc.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        <header className="border-b sticky top-0 z-30 transition-colors backdrop-blur-md bg-white/80 border-slate-200 dark:bg-slate-900/80 dark:border-slate-800">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-3 mr-8 shrink-0">
+              <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg text-white shadow-lg shadow-purple-500/20">
+                <Globe className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-base font-bold tracking-tight">Reality Nexus OS</h1>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">Unified Soul Framework</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+              {[
+                { id: 'welcome', label: 'SOO Core', icon: Terminal },
+                { id: 'workspace', label: 'Workspaces', icon: Layers },
+                { id: 'social', label: 'LTSocial', icon: MessageSquare },
+                { id: 'trading', label: 'SC Treasury', icon: Coins },
+                { id: 'mining', label: 'DePIN Mining', icon: Server },
+                { id: 'downloads', label: 'Deployment', icon: Download },
+                { id: 'security', label: 'AI & Security', icon: Shield }
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const active = activeLayer === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveLayer(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      active 
+                        ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/25' 
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-7xl mx-auto px-4 py-6">
+          
+          {/* LAYER 1: WELCOME, BOOT, & THEME CONTROL */}
+          {activeLayer === 'welcome' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 relative overflow-hidden transition-colors">
+                <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div className="max-w-2xl mb-8">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/30">
+                    LAYER 1 — BOOT &amp; THEME SELECTOR
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-bold mt-3">Welcome to Soul Operating System</h2>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm mt-2 leading-relaxed">
+                    The real machine is the <strong className="text-purple-600 dark:text-purple-300">Soul (L0)</strong>. Protected by KVM hypervisor. Select your aesthetic environment or boot a virtual workspace below.
+                  </p>
+                </div>
+
+                <h3 className="text-sm font-bold mb-4 uppercase tracking-wider text-slate-500">System Appearance</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                  {[
+                    { id: 'light', label: 'Light Mode', icon: Sun },
+                    { id: 'dark', label: 'Dark Mode', icon: Moon },
+                    { id: 'sensor', label: 'Auto Sensor (Proof)', icon: Activity }
+                  ].map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => setThemeMode(t.id)}
+                      className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all border-2 ${
+                        themeMode === t.id 
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400' 
+                          : 'border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-950/50 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      <t.icon className="w-6 h-6" />
+                      <span className="font-semibold text-sm">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {isSensorActive && (
+                  <div className="mb-8 p-6 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 transition-colors">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Live Ambient Light Sensor (Lux)</span>
+                      <span className="text-xs font-mono bg-purple-200 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 px-2 py-1 rounded">MINING ACTIVE</span>
+                    </div>
+                    <div className="h-4 w-full bg-slate-300 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000"
+                        style={{ width: `${Math.min(100, (luxReading / 500) * 100)}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 text-xs font-mono text-slate-500 dark:text-slate-400">Current Reading: {Math.round(luxReading)} lux (Broadcasting to BioNexus)</div>
+                  </div>
+                )}
+
+                <h3 className="text-sm font-bold mb-4 uppercase tracking-wider text-slate-500">Virtual Workspaces</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { id: 'linux', title: 'Linux Workspace', desc: 'Native Performance & Container Tools', badge: 'Workspace B', color: 'border-emerald-500/30 hover:border-emerald-500/60' },
+                    { id: 'hybrid', title: 'Hybrid Mode', desc: 'All Workspaces Active Simultaneously', badge: 'RISKY', color: 'border-red-500/30 hover:border-red-500/60' }
+                  ].map((ws) => (
+                    <div 
+                      key={ws.id}
+                      onClick={() => {
+                        if (ws.id === 'hybrid') setHybridMode(true);
+                        handleBootWorkspace(ws.id === 'hybrid' ? 'linux' : ws.id);
+                      }}
+                      className={`bg-slate-50 dark:bg-slate-950/80 border ${ws.color} rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] group flex flex-col justify-between`}
+                    >
+                      <div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {ws.badge}
+                        </span>
+                        <h3 className="text-base font-bold mt-3 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                          {ws.title}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{ws.desc}</p>
+                      </div>
+                      <div className="mt-6 flex items-center justify-between text-xs font-mono text-purple-600 dark:text-purple-400">
+                        <span>Boot Workspace</span>
+                        <CornerDownRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* System Boot Logs Terminal */}
+              <div className="bg-slate-100 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-800 rounded-xl p-4 font-mono text-xs transition-colors">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-300 dark:border-slate-800 mb-3 text-slate-500 dark:text-slate-400">
+                  <span className="flex items-center gap-2"><Terminal className="w-4 h-4 text-purple-600 dark:text-purple-400" /> rEFInd Boot &amp; Kernel Log</span>
+                  <span className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-emerald-600 dark:text-emerald-400">STATUS: BOOTED</span>
+                </div>
+                <div className="space-y-1.5 text-slate-700 dark:text-slate-300 max-h-40 overflow-y-auto">
+                  {bootLog.map((log, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <span className="text-purple-500 dark:text-purple-400">&gt;</span>
+                      <span className="break-all">{log}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeLayer === 'workspace' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-300">
+              <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col transition-colors">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+                  <div>
+                    <span className="text-xs font-mono text-purple-600 dark:text-purple-400 uppercase tracking-wider">Active Workspace Container</span>
+                    <h2 className="text-xl font-bold capitalize mt-0.5">{selectedWorkspace} VM (KVM + QEMU)</h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setAiMirrorActive(!aiMirrorActive)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium flex items-center gap-1.5 border transition-all ${
+                        aiMirrorActive ? 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/30' : 'bg-red-100 text-red-700 border-red-300 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/30'
+                      }`}
+                    >
+                      <Eye className="w-3.5 h-3.5" /> AI Mirror Gate: {aiMirrorActive ? 'SECURE' : 'DISABLED'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="my-6 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl flex-1 min-h-[350px] flex flex-col items-center justify-center relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-[radial-gradient(#3b82f630_1px,transparent_1px)] dark:bg-[radial-gradient(#3b82f610_1px,transparent_1px)] [background-size:16px_16px] opacity-30"></div>
+                  <div className="text-center p-6 relative z-10">
+                    <div className="w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-600/20 border border-purple-300 dark:border-purple-500/30 flex items-center justify-center mx-auto mb-4 text-purple-600 dark:text-purple-400 shadow-xl">
+                      <Globe className="w-8 h-8 animate-spin" style={{ animationDuration: '20s' }} />
+                    </div>
+                    <h3 className="text-lg font-bold">SPICE Display Protocol Active</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                      Virtual machine rendering at native resolution with VFIO hardware acceleration. Protected by host Wayland compositor.
+                    </p>
+                    <div className="mt-6 flex items-center justify-center gap-3">
+                      <span className="px-3 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-xs font-mono text-slate-600 dark:text-slate-300">
+                        IP: 192.168.122.10
+                      </span>
+                      <span className="px-3 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-xs font-mono text-slate-600 dark:text-slate-300">
+                        RAM: 16GB Allocated
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <span>SELinux sVirt Context: <code className="text-purple-600 dark:text-purple-300 font-mono">system_u:object_r:svirt_image_t:s0:c64,c512</code></span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">Zero Guest-to-Host Contamination</span>
+                </div>
+              </div>
+
+              {/* AI Mirror Sidebar */}
+              <div className="lg:col-span-4 space-y-6">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 transition-colors">
+                  <h3 className="text-base font-bold flex items-center gap-2 mb-3">
+                    <Eye className="w-5 h-5 text-purple-500 dark:text-purple-400" /> AI Mirror Layer (L3)
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                    Sandboxed AI agents operating in isolated microVMs. The Screen Gate Daemon intercepts display streams, forwarding only user-authorized frames.
+                  </p>
+                  <div className="space-y-3 font-mono text-xs">
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-slate-800 dark:text-white">AI Agent #1 (Grok/Mirror)</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">Firecracker microVM #801</div>
+                      </div>
+                      <span className="px-2 py-1 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 text-[10px] border border-emerald-200 dark:border-emerald-500/20">
+                        SANDBOXED
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-slate-800 dark:text-white">Screen Gate Proxy</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">Deny-All Default Policy</div>
+                      </div>
+                      <span className="px-2 py-1 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 text-[10px] border border-purple-200 dark:border-purple-500/20">
+                        ACTIVE
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-6 p-4 rounded-xl bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-500/30 text-xs text-purple-800 dark:text-purple-200">
+                    <strong className="block mb-1 text-purple-700 dark:text-purple-300 font-semibold">Narrative Metaphor</strong>
+                    The host is the soul; workspaces are projections; AI agents exist in mirror rooms and can only observe reflected actions authorized by the user.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeLayer === 'social' && (
+            <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <span className="text-xs font-mono text-blue-500 dark:text-blue-400 uppercase tracking-wider">Social Core</span>
+                  <h2 className="text-2xl font-bold mt-0.5">LTSocial Feed</h2>
+                </div>
+                <span className="text-xs px-3 py-1 rounded-full border bg-white border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+                  Sprint 3.3 Active
+                </span>
+              </div>
+
+              {posts.map(post => (
+                <div key={post.id} className="p-5 rounded-2xl border bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 transition-colors shadow-sm">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center font-bold text-white shadow-md">
+                        {post.author.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm">{post.author}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{post.handle} • {post.timestamp}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Post Context Menu Integration */}
+                    <div className="relative">
+                      <button 
+                        onClick={() => setOpenMenuId(openMenuId === post.id ? null : post.id)}
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                      
+                      {openMenuId === post.id && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)}></div>
+                          <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 p-1 z-20 animate-in zoom-in-95 duration-100">
+                            <button onClick={() => handleAction('bookmark', post.id)} className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                              <Bookmark className="w-4 h-4" /> {post.bookmarked ? 'Remove Bookmark' : 'Bookmark Post'}
+                            </button>
+                            
+                            {!post.isMinted && !post.isShiftMined && post.author === 'Rainbow Strongman' && (
+                              <>
+                                <button onClick={() => handleAction('mint', post.id)} className="w-full text-left px-3 py-2 text-sm text-yellow-600 hover:bg-slate-100 dark:text-yellow-400 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                                  <Coins className="w-4 h-4" /> Mint Post
+                                </button>
+                                <button onClick={() => handleAction('shiftMine', post.id)} className="w-full text-left px-3 py-2 text-sm text-purple-600 hover:bg-slate-100 dark:text-purple-400 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                                  <Pickaxe className="w-4 h-4" /> Shift Mine Post
+                                </button>
+                              </>
+                            )}
+                            
+                            <button onClick={() => handleAction('mute', post.id)} className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                              <VolumeX className="w-4 h-4" /> Mute User
+                            </button>
+                            <button onClick={() => handleAction('report', post.id)} className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                              <Flag className="w-4 h-4" /> Report Post
+                            </button>
+                            
+                            {!post.isMinted && !post.isShiftMined && post.author === 'Rainbow Strongman' && (
+                              <button onClick={() => handleAction('delete', post.id)} className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2 border-t border-slate-100 dark:border-slate-700 mt-1 pt-2">
+                                <X className="w-4 h-4" /> Delete Post
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-sm leading-relaxed mb-4 text-slate-800 dark:text-slate-200">
+                    {post.content}
+                  </p>
+
+                  {/* SC and Badges Display */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20 flex items-center gap-2">
+                      <span className="text-xs font-bold text-blue-700 dark:text-blue-400">SC ${post.scValue.toFixed(2)}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${scHolding.isOnChain ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-400'}`}>
+                        {scHolding.isOnChain ? 'On-Chain' : 'Off-Network'}
+                      </span>
+                    </div>
+                    {post.isMinted && (
+                      <div className="px-3 py-1.5 rounded-lg bg-yellow-50 border border-yellow-200 text-xs font-bold text-yellow-700 dark:bg-yellow-500/10 dark:border-yellow-500/20 dark:text-yellow-500 flex items-center gap-1">
+                        <Coins className="w-3.5 h-3.5" /> Minted NFT
+                      </div>
+                    )}
+                    {post.isShiftMined && (
+                      <div className="px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-xs font-bold text-purple-700 dark:bg-purple-500/10 dark:border-purple-500/20 dark:text-purple-400 flex items-center gap-1">
+                        <Pickaxe className="w-3.5 h-3.5" /> Shift Mined
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Bar */}
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex gap-4">
+                      <button className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-500 transition-colors">
+                        <Heart className="w-4 h-4" /> {post.likes}
+                      </button>
+                      <button className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-500 transition-colors">
+                        <MessageSquare className="w-4 h-4" /> {post.comments}
+                      </button>
+                      {/* 1:1 Tipping Rule 2 */}
+                      <button onClick={() => handleTipPost(post.id, 1.00)} className="flex items-center gap-1.5 text-xs text-emerald-600 hover:bg-emerald-50 dark:text-emerald-500 dark:hover:bg-emerald-500/10 px-2 py-1 rounded transition-colors font-medium">
+                        +$1 SC Tip
+                      </button>
+                    </div>
+                    
+                    {/* Share Button extracted from menu */}
+                    <button onClick={() => handleAction('share', post.id)} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/50 dark:hover:bg-slate-800 px-3 py-1.5 rounded-lg">
+                      <Share className="w-3.5 h-3.5" /> Share
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeLayer === 'trading' && (
+            <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 transition-colors">
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
+                  <Coins className="w-6 h-6 text-purple-600 dark:text-purple-500" /> Shift Coin (SC) Treasury
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* SC Wallet Card */}
+                  <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-100 to-white dark:from-purple-900/50 dark:to-slate-900 border border-purple-200 dark:border-purple-500/30 shadow-md">
+                    <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-4">Your SC Holding</h3>
+                    
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <span className="text-sm text-slate-600 dark:text-slate-400">In-network value:</span>
+                        <span className="text-3xl font-bold text-slate-900 dark:text-white">${scHolding.currentValue.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm border-b border-slate-200 dark:border-slate-700/50 pb-2">
+                        <span className="text-slate-500 dark:text-slate-400">You paid:</span>
+                        <span className="font-semibold text-slate-800 dark:text-white">${(scHolding.entryValue / 2).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm border-b border-slate-200 dark:border-slate-700/50 pb-2">
+                        <span className="text-slate-500 dark:text-slate-400">ROI:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">+ {(((scHolding.currentValue - (scHolding.entryValue/2)) / (scHolding.entryValue/2)) * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm border-b border-slate-200 dark:border-slate-700/50 pb-2">
+                        <span className="text-slate-500 dark:text-slate-400">Network Status:</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${scHolding.isOnChain ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>
+                          {scHolding.isOnChain ? 'ON-CHAIN' : 'OFF-NETWORK'}
+                        </span>
+                      </div>
+                      
+                      <div className="pt-2">
+                        <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                          <span>Progress to Ceiling</span>
+                          <span>${scHolding.ceiling.toFixed(2)} Cap</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-purple-500" style={{ width: `${(scHolding.currentValue / scHolding.ceiling) * 100}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Purchase Actions (Rule 1 & Rule 3 implementation) */}
+                  <div className="space-y-4">
+                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <h3 className="font-bold mb-2 text-slate-800 dark:text-white">Buy SC with Fiat</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+                        <strong className="text-blue-600 dark:text-blue-400">Rule 1:</strong> Pay $X, receive $2X in-network value instantly. Remains off-network until first sale.
+                      </p>
+                      <button onClick={() => setActiveModal('buyFiat')} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors shadow-md">
+                        Purchase via Fiat
+                      </button>
+                    </div>
+
+                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><Zap className="w-16 h-16" /></div>
+                      <h3 className="font-bold mb-2 text-emerald-600 dark:text-emerald-400">Buy SC with Ethereum</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+                        <strong className="text-emerald-600 dark:text-emerald-400">Rule 3:</strong> Pay ETH, get 2X value AND immediate On-Chain status. No treasury cut.
+                      </p>
+                      <button onClick={() => setActiveModal('buyEth')} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-colors shadow-md">
+                        Purchase via ETH
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeLayer === 'mining' && (
+            <div className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 transition-colors shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                  <div>
+                    <span className="text-xs font-mono text-purple-600 dark:text-purple-400 uppercase tracking-wider">Miracle Network Node</span>
+                    <h2 className="text-xl font-bold mt-0.5">Live DePIN &amp; Proof-of-Engagement Mining</h2>
+                  </div>
+                  <button
+                    onClick={() => setMiningActive(!miningActive)}
+                    className={`px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all ${
+                      miningActive 
+                        ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 dark:bg-red-600/20 dark:text-red-300 dark:border-red-500/30 dark:hover:bg-red-600/30' 
+                        : 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-700'
+                    }`}
+                  >
+                    <Server className={`w-4 h-4 ${miningActive ? 'animate-pulse' : ''}`} />
+                    {miningActive ? 'Stop Mining Node' : 'Start Live Mining Node'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">Hash Rate</div>
+                    <div className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">{hashRate} KH/s</div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">Mined Mints (RC)</div>
+                    <div className="mt-2 text-3xl font-bold text-purple-600 dark:text-purple-400 font-mono">{wallet.rc.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">Node Status</div>
+                    <div className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">{miningActive ? 'ACTIVE' : 'IDLE'}</div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-4 font-mono text-xs shadow-inner">
+                  <div className="text-slate-600 dark:text-slate-400 pb-2 border-b border-slate-300 dark:border-slate-800 mb-2 flex items-center gap-2">
+                    <Terminal className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> Node Telemetry Stream (`ia_guardian_bridge.py`)
+                  </div>
+                  <div className="space-y-1.5 text-slate-700 dark:text-slate-300 max-h-40 overflow-y-auto">
+                    <div>[06:00:01] Node node-alpha-01 initialized successfully.</div>
+                    {miningActive && (
+                      <>
+                        <div className="text-emerald-700 dark:text-emerald-400">[06:00:10] Proof-of-Presence entropy computed: hash=0x7f83...9069</div>
+                        <div className="text-purple-700 dark:text-purple-300">[06:00:15] Telemetry successfully broadcast to FastAPI gateway (/api/v1/analytics/collect)</div>
+                      </>
+                    )}
+                    {!miningActive && <div className="text-slate-500">[IDLE] Click 'Start Live Mining Node' to begin broadcasting telemetry.</div>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeLayer === 'downloads' && (
+            <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-300">
+              <div className="text-center mb-10 mt-6">
+                <h2 className="text-3xl font-bold mb-3 text-slate-900 dark:text-white">Deployment &amp; Downloads Center</h2>
+                <p className="text-slate-600 dark:text-slate-400">Access the raw ISOs, Mac payloads, and SOO configurations.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                  { title: 'SOO Linux Distro', version: 'v0.6.0-stable', size: '2.4 GB', type: '.ISO Image', color: 'from-blue-500 to-cyan-500', icon: Server },
+                  { title: 'MacOS Workspace Payload', version: 'OSX-KVM Script', size: '15 MB', type: '.SH / .DMG', color: 'from-purple-500 to-pink-500', icon: Monitor },
+                  { title: 'USB Boot Creator', version: 'v1.2.0', size: '45 MB', type: 'Executable', color: 'from-emerald-500 to-teal-500', icon: HardDrive }
+                ].map((item, i) => (
+                  <div key={i} className="rounded-3xl border bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 p-6 flex flex-col items-center text-center transition-transform hover:-translate-y-2 shadow-sm">
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white mb-6 shadow-lg`}>
+                      <item.icon className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-bold mb-1 text-slate-800 dark:text-white">{item.title}</h3>
+                    <div className="flex gap-2 text-xs font-mono text-slate-500 mb-6">
+                      <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{item.version}</span>
+                      <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{item.size}</span>
+                    </div>
+                    <button onClick={() => showToast(`Initiating download for ${item.title}...`)} className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                      <Download className="w-4 h-4" /> Download {item.type}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 p-6 rounded-2xl border bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-500/20">
+                <h3 className="font-bold text-amber-600 dark:text-amber-500 flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5" /> Architectural Note</h3>
+                <p className="text-sm text-amber-800 dark:text-amber-200/70 leading-relaxed">
+                  In the live production environment, these buttons connect directly to AWS S3 buckets containing the compiled binaries, disk images, and `.sh` bootstrapper scripts for the Soul Operating System KVM abstraction layer.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeLayer === 'security' && (
+            <div className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+                <span className="text-xs font-mono text-purple-600 dark:text-purple-400 uppercase tracking-wider">External AI Hub</span>
+                <h2 className="text-xl font-bold mt-0.5 text-slate-900 dark:text-white">Hugging Face API Integration</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                  Configure your Hugging Face API key to power advanced quant models, text classification, and automated agent sentiment analysis directly within SOO.
+                </p>
+
+                <div className="mt-6 max-w-xl space-y-4 mb-10 pb-8 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <label className="block text-xs font-mono uppercase text-slate-500 dark:text-slate-400 mb-1.5">Hugging Face API Key (Bearer Token)</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="password"
+                        value={huggingFaceApiKey}
+                        onChange={(e) => setHuggingFaceApiKey(e.target.value)}
+                        placeholder="hf_..."
+                        className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-purple-500 font-mono"
+                      />
+                      <button
+                        onClick={handleSaveHfKey}
+                        className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs rounded-xl transition-colors shadow-md"
+                      >
+                        Save &amp; Verify
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono">
+                    <span className="text-slate-500 dark:text-slate-400">Connection Status:</span>
+                    <span className={hfStatus === 'Connected & Verified' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-amber-600 dark:text-amber-400'}>
+                      {hfStatus}
+                    </span>
+                  </div>
+                </div>
+
+                <span className="text-xs font-mono text-red-500 dark:text-red-400 uppercase tracking-wider">System Security &amp; Audit</span>
+                <h2 className="text-xl font-bold mt-0.5 text-slate-900 dark:text-white">SOO Hardening &amp; Governance</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                  Enforcing SELinux enforcing mode, sVirt unique virtual machine labeling, and USBGuard whitelist device authorization policies across the L0 host.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                  {[
+                    { title: 'SELinux + sVirt Isolation', status: 'ENFORCING', desc: 'Unique security contexts assigned to each guest VM to prevent inter-VM attacks.' },
+                    { title: 'USBGuard Whitelist Policy', status: 'ACTIVE', desc: 'Blocks unauthenticated USB devices from passing through to guest workspaces.' },
+                    { title: 'Micro-Segmented Networking', status: 'VERIFIED', desc: 'Each VM isolated in dedicated network namespaces with strict firewall rules.' },
+                    { title: 'UEFI Secure Boot Chain', status: 'ENROLLED', desc: 'Custom keys and measured boot loaders verify system integrity at startup.' }
+                  ].map((item, idx) => (
+                    <div key={idx} className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-white">{item.title}</h3>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                          {item.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+
+        
+        {/* Share Side Panel */}
+        {sharePanelOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSharePanelOpen(false)} />
+            <div className="w-full max-w-sm h-full shadow-2xl relative flex flex-col animate-in slide-in-from-right duration-300 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Share this post</h3>
+                <button onClick={() => setSharePanelOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="p-6 grid grid-cols-2 gap-4">
+                {[
+                  { label: 'Copy Link', action: () => { showToast('Link Copied!'); setSharePanelOpen(false); } },
+                  { label: 'Send in DM', action: () => { showToast('DM Modal opened'); setSharePanelOpen(false); } },
+                  { label: 'Share to Feed', action: () => { showToast('Reposted to your feed'); setSharePanelOpen(false); } },
+                  { label: 'Share to Public', action: () => { showToast('Shared to public tier'); setSharePanelOpen(false); } },
+                ].map((opt, i) => (
+                  <button key={i} onClick={opt.action} className="p-4 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 flex flex-col items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-300 transition-colors">
+                    <Share className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-auto p-6 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+                <p className="text-xs text-slate-500 font-mono mb-2">POST PREVIEW:</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 italic">
+                  "{posts.find(p => p.id === selectedPostId)?.content || '...'}"
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Modals (Mint, Shift Mine, Buy SC) */}
+        {activeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setActiveModal(null)} />
+            
+            <div className="relative w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+              
+              {activeModal === 'mint' && (
+                <div className="p-6">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-900 dark:text-white"><Coins className="text-yellow-500" /> Mint This Post as NFT</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-xl mb-6 text-sm text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
+                    <p className="italic mb-2 line-clamp-3">"{posts.find(p => p.id === selectedPostId)?.content}"</p>
+                    <p className="text-yellow-600 dark:text-yellow-500 font-bold mt-4">Minting fee: 15 RC</p>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                    This post will become a permanent on-chain NFT and will be listed in the LTNFThifty marketplace. Once minted, this post cannot be deleted.
+                  </p>
+                  <div className="flex gap-3">
+                    <button onClick={() => setActiveModal(null)} className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+                    <button onClick={confirmMint} className="flex-1 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-black font-bold transition-colors">Mint Now</button>
+                  </div>
+                </div>
+              )}
+
+              {activeModal === 'shiftMine' && (
+                <div className="p-6 border-t-4 border-red-500">
+                  <h3 className="text-xl font-bold mb-2 flex items-center gap-2 text-red-600 dark:text-red-500"><AlertTriangle /> PERMANENT ACTION</h3>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 font-medium mb-4">Read before continuing.</p>
+                  
+                  <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-2 mb-6 list-disc pl-4">
+                    <li>Shift Mining registers this post as permanent proof-of-contribution.</li>
+                    <li>This post will NEVER be deleted and cannot be edited.</li>
+                    <li>Its content hash is recorded on-chain.</li>
+                    <li className="text-purple-600 dark:text-purple-400 font-bold">Reward: SC based on content score &amp; RSNX points.</li>
+                  </ul>
+
+                  <div className="mb-6">
+                    <label className="text-xs font-mono text-slate-500 mb-2 block">Type CONFIRM to proceed:</label>
+                    <input type="text" placeholder="CONFIRM" className="w-full bg-slate-50 border border-slate-200 text-slate-900 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded-lg px-4 py-2 text-sm focus:border-red-500 outline-none" id="confirmInput" onChange={(e) => {
+                      const btn = document.getElementById('mineBtn');
+                      if (btn) btn.disabled = e.target.value !== 'CONFIRM';
+                    }}/>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button onClick={() => setActiveModal(null)} className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+                    <button id="mineBtn" disabled onClick={confirmShiftMine} className="flex-1 py-2.5 rounded-xl bg-red-600 disabled:bg-slate-300 disabled:text-slate-500 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 text-white font-bold transition-colors">Mine Post</button>
+                  </div>
+                </div>
+              )}
+
+              {activeModal === 'buyFiat' && (
+                <div className="p-6">
+                  <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Buy SC via Fiat</h3>
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <label className="text-xs text-slate-500 dark:text-slate-400">Amount (USD)</label>
+                      <input type="number" defaultValue="25" id="fiatAmount" className="w-full bg-slate-50 border border-slate-200 text-slate-900 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded-lg px-4 py-2 mt-1 outline-none focus:border-blue-500" />
+                    </div>
+                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-500/10 dark:border-blue-500/20 text-xs dark:text-blue-300">
+                      <strong>Rule 1:</strong> You will receive 2x in-network value instantly.
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setActiveModal(null)} className="flex-1 py-3 border border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-300 rounded-xl font-medium">Cancel</button>
+                    <button onClick={() => handleBuySC('fiat', Number(document.getElementById('fiatAmount').value))} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">Confirm Purchase</button>
+                  </div>
+                </div>
+              )}
+
+              {activeModal === 'buyEth' && (
+                <div className="p-6">
+                  <h3 className="text-xl font-bold mb-4 text-emerald-600 dark:text-emerald-400">Buy SC via Ethereum</h3>
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <label className="text-xs text-slate-500 dark:text-slate-400">Amount (ETH)</label>
+                      <input type="number" step="0.1" defaultValue="0.1" id="ethAmount" className="w-full bg-slate-50 border border-slate-200 text-slate-900 dark:bg-slate-950 dark:border-slate-800 dark:text-white rounded-lg px-4 py-2 mt-1 outline-none focus:border-emerald-500" />
+                    </div>
+                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 text-xs dark:text-emerald-300">
+                      <strong>Rule 3:</strong> ETH entry grants instant On-Chain status. No treasury cut.
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setActiveModal(null)} className="flex-1 py-3 border border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-300 rounded-xl font-medium">Cancel</button>
+                    <button onClick={() => handleBuySC('eth', Number(document.getElementById('ethAmount').value))} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors">Confirm ETH Transaction</button>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
