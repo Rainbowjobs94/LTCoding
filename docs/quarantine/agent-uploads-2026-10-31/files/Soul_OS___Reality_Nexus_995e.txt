@@ -1,0 +1,645 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Cpu, Shield, Terminal, Globe, Lock, Play, RefreshCw, 
+  Settings, CheckCircle2, AlertTriangle, Layers, Zap, Eye,
+  Activity, Server, HardDrive, Wifi, CornerDownRight, Unlock,
+  Sun, Moon, Monitor, Share, Bookmark, Flag, VolumeX,
+  Coins, Pickaxe, Download, ChevronRight, X, MessageSquare, Heart
+} from 'lucide-react';
+
+const INITIAL_POSTS = [
+  {
+    id: 1,
+    author: 'Rainbow Strongman',
+    handle: '@rainbowjobs',
+    content: 'The BioNexus Protocol is officially live. We are shifting consensus from industrial server farms to verified human presence. #DePIN #RealityNexus',
+    timestamp: '2 mins ago',
+    likes: 124,
+    comments: 12,
+    isMinted: true,
+    isShiftMined: false,
+    scValue: 50.00,
+    bookmarked: false
+  },
+  {
+    id: 2,
+    author: 'IA_Guardian',
+    handle: '@iaguardian',
+    content: 'System Alert: Sub-second anomaly detected in Node 4. Auto-quarantine initiated via CodeBow protocols. System remains 100% secure.',
+    timestamp: '1 hour ago',
+    likes: 89,
+    comments: 4,
+    isMinted: false,
+    isShiftMined: true,
+    scValue: 250.00,
+    bookmarked: true
+  }
+];
+
+export default function SoulOperatingSystem() {
+  // Global System State
+  const [activeLayer, setActiveLayer] = useState('boot');
+  const [bootLog, setBootLog] = useState(['[INIT] SOO Core v0.6.0 booting...', '[SEC] KVM Hypervisor active.']);
+  
+  // Theme & Sensor State
+  const [themeMode, setThemeMode] = useState('dark'); // light, dark, system, sensor
+  const [luxReading, setLuxReading] = useState(120);
+  const [isSensorActive, setIsSensorActive] = useState(false);
+
+  // Economy & Wallet State
+  const [wallet, setWallet] = useState({ usd: 1500.00, rc: 450.25, sc: 100.00, eth: 2.5 });
+  const [scHolding, setScHolding] = useState({ active: true, entryValue: 100, currentValue: 145.50, ceiling: 500, isOnChain: false });
+
+  // Social & UI State
+  const [posts, setPosts] = useState(INITIAL_POSTS);
+  const [activeModal, setActiveModal] = useState(null); // 'mint', 'shiftMine', 'buySc', null
+  const [selectedPostId, setSelectedPostId] = useState(null);
+  const [sharePanelOpen, setSharePanelOpen] = useState(false);
+  const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    // Simulated Ambient Light Sensor for "Proof of Reality" Theme Switching
+    let sensorInterval;
+    if (themeMode === 'sensor') {
+      setIsSensorActive(true);
+      sensorInterval = setInterval(() => {
+        // Simulate fluctuating light levels
+        const newLux = Math.max(10, Math.min(1000, luxReading + (Math.random() * 40 - 20)));
+        setLuxReading(newLux);
+        
+        // Auto-switch theme based on lux
+        if (newLux < 50) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }, 2000);
+    } else {
+      setIsSensorActive(false);
+      if (themeMode === 'dark') document.documentElement.classList.add('dark');
+      if (themeMode === 'light') document.documentElement.classList.remove('dark');
+    }
+
+    return () => clearInterval(sensorInterval);
+  }, [themeMode, luxReading]);
+
+  // Helper for Toasts
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleBuySC = (method, amount) => {
+    if (method === 'fiat') {
+      if (wallet.usd < amount) return showToast('Insufficient USD balance');
+      setWallet(prev => ({ ...prev, usd: prev.usd - amount }));
+      // Rule 1: 2x Entry Value for Fiat
+      const newValue = amount * 2;
+      setScHolding({
+        active: true,
+        entryValue: newValue,
+        currentValue: newValue,
+        ceiling: amount * 10,
+        isOnChain: false // Requires sale to confirm
+      });
+      showToast(`SC Issued! Paid $${amount}, In-network value $${newValue}`);
+    } else if (method === 'eth') {
+      if (wallet.eth < amount) return showToast('Insufficient ETH balance');
+      setWallet(prev => ({ ...prev, eth: prev.eth - amount }));
+      // Rule 3: ETH gets 2x value AND immediate on-chain status
+      const usdEquiv = amount * 3000; // Mock ETH price
+      const newValue = usdEquiv * 2;
+      setScHolding({
+        active: true,
+        entryValue: newValue,
+        currentValue: newValue,
+        ceiling: usdEquiv * 10,
+        isOnChain: true 
+      });
+      showToast(`ETH Received! SC is instantly On-Chain. Value: $${newValue}`);
+    }
+    setActiveModal(null);
+  };
+
+  const handleTipPost = (postId, amount) => {
+    if (wallet.usd < amount) return showToast('Insufficient funds to tip.');
+    setWallet(prev => ({ ...prev, usd: prev.usd - amount }));
+    
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        // Rule 2: Tip adds exactly 1:1 to SC Value
+        return { ...p, scValue: p.scValue + amount };
+      }
+      return p;
+    }));
+    showToast(`Tipped $${amount}! Creator's SC value increased 1:1.`);
+  };
+
+  const handleAction = (action, postId) => {
+    setSelectedPostId(postId);
+    if (action === 'bookmark') {
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, bookmarked: !p.bookmarked } : p));
+      showToast(posts.find(p => p.id === postId).bookmarked ? 'Bookmark removed' : 'Bookmarked!');
+    } else if (action === 'delete') {
+      const post = posts.find(p => p.id === postId);
+      if (post.isMinted || post.isShiftMined) return showToast('Cannot delete permanent/mined posts.');
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      showToast('Post deleted');
+    } else if (action === 'mute' || action === 'report') {
+      showToast(`User ${action}ed successfully.`);
+    } else if (action === 'mint' || action === 'shiftMine') {
+      setActiveModal(action);
+    } else if (action === 'share') {
+      setSharePanelOpen(true);
+    }
+  };
+
+  const confirmMint = () => {
+    setPosts(prev => prev.map(p => p.id === selectedPostId ? { ...p, isMinted: true } : p));
+    setActiveModal(null);
+    showToast('Post Minted! Now listed in LTNFThifty marketplace.');
+  };
+
+  const confirmShiftMine = () => {
+    setPosts(prev => prev.map(p => p.id === selectedPostId ? { ...p, isShiftMined: true } : p));
+    // Reward user for Shift Mining their post
+    setWallet(prev => ({ ...prev, sc: prev.sc + 5 }));
+    setActiveModal(null);
+    showToast('Post Shift Mined! Permanent Proof-of-Reality recorded. +5 SC');
+  };
+
+  return (
+    <div className={`min-h-screen font-sans transition-colors duration-300 ${themeMode === 'light' ? 'bg-slate-50 text-slate-900' : 'bg-slate-950 text-slate-100'}`}>
+      
+      {/* Global Toast */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 font-medium">
+            <CheckCircle2 className="w-5 h-5" /> {toast}
+          </div>
+        </div>
+      )}
+
+      {/* Top System Status Bar */}
+      <div className={`border-b px-4 py-2 flex items-center justify-between text-xs font-mono transition-colors ${themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900/90 border-slate-800'}`}>
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5 text-purple-500 font-bold">
+            <Cpu className="w-4 h-4 animate-pulse" /> SOO v0.6.0
+          </span>
+          <span className="hidden sm:flex items-center gap-2 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+            <Shield className="w-3.5 h-3.5" /> KVM ISOLATED
+          </span>
+        </div>
+        
+        {/* Wallet Balances */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 text-slate-500">
+            USD: <span className="font-bold text-emerald-500">${wallet.usd.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center gap-1 text-slate-500">
+            RC: <span className="font-bold text-blue-500">{wallet.rc.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center gap-1 text-slate-500">
+            SC: <span className="font-bold text-purple-500">{wallet.sc.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Navigation Header */}
+      <header className={`border-b sticky top-0 z-30 transition-colors backdrop-blur-md ${themeMode === 'light' ? 'bg-white/80 border-slate-200' : 'bg-slate-900/80 border-slate-800'}`}>
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-3 mr-8 shrink-0">
+            <div className="p-2 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg text-white shadow-lg shadow-purple-500/20">
+              <Globe className="w-5 h-5" />
+            </div>
+            <h1 className="text-lg font-bold tracking-tight">Reality Nexus</h1>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {[
+              { id: 'boot', label: 'SOO Core', icon: Terminal },
+              { id: 'social', label: 'LTSocial', icon: MessageSquare },
+              { id: 'trading', label: 'SC Treasury', icon: Coins },
+              { id: 'mining', label: 'BioNexus Mining', icon: Pickaxe },
+              { id: 'downloads', label: 'Deployment', icon: Download }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const active = activeLayer === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveLayer(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                    active 
+                      ? 'bg-purple-600 text-white shadow-md' 
+                      : themeMode === 'light' ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-800'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden md:inline">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </header>
+
+      {}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        
+        {/* ================= LAYER: SOO BOOT & THEME ================= */}
+        {activeLayer === 'boot' && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            <div className={`p-8 rounded-3xl border relative overflow-hidden ${themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+              <h2 className="text-2xl font-bold mb-2">System Preferences & Appearance</h2>
+              <p className={`text-sm mb-8 ${themeMode === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
+                Configure your Soul Operating System environment. The Auto Sensor mode acts as an environmental Proof-of-Presence for bio-mining.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[
+                  { id: 'light', label: 'Light Mode', icon: Sun },
+                  { id: 'dark', label: 'Dark Mode', icon: Moon },
+                  { id: 'system', label: 'System Default', icon: Monitor },
+                  { id: 'sensor', label: 'Auto Sensor (Proof)', icon: Activity }
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setThemeMode(t.id)}
+                    className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all border-2 ${
+                      themeMode === t.id 
+                        ? 'border-purple-500 bg-purple-500/10 text-purple-500' 
+                        : themeMode === 'light' ? 'border-slate-200 hover:border-slate-300' : 'border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <t.icon className="w-6 h-6" />
+                    <span className="font-semibold text-sm">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {isSensorActive && (
+                <div className="mt-8 p-6 rounded-2xl bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-purple-500/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-bold text-purple-300">Live Ambient Light Sensor (Lux)</span>
+                    <span className="text-xs font-mono bg-purple-500/20 text-purple-300 px-2 py-1 rounded">MINING ACTIVE</span>
+                  </div>
+                  <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000"
+                      style={{ width: `${Math.min(100, (luxReading / 500) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs font-mono text-slate-400">Current Reading: {Math.round(luxReading)} lux (Broadcasting to BioNexus)</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ================= LAYER: LTSOCIAL NETWORK ================= */}
+        {}
+        {activeLayer === 'social' && (
+          <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">LTSocial Feed</h2>
+              <span className={`text-xs px-3 py-1 rounded-full border ${themeMode === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-slate-800 border-slate-700'}`}>
+                Sprint 3.3 Active
+              </span>
+            </div>
+
+            {posts.map(post => (
+              <div key={post.id} className={`p-5 rounded-2xl border transition-colors ${themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center font-bold text-white">
+                      {post.author.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm">{post.author}</h3>
+                      <p className="text-xs text-slate-500">{post.handle} • {post.timestamp}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Post Context Menu (Pop-out simulated) */}
+                  <div className="relative group">
+                    <button className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400">
+                      <Settings className="w-4 h-4" />
+                    </button>
+                    <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl border border-slate-700 bg-slate-800 p-1 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-20">
+                      <button onClick={() => handleAction('bookmark', post.id)} className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                        <Bookmark className="w-4 h-4" /> {post.bookmarked ? 'Remove Bookmark' : 'Bookmark Post'}
+                      </button>
+                      
+                      {!post.isMinted && !post.isShiftMined && post.author === 'Rainbow Strongman' && (
+                        <>
+                          <button onClick={() => handleAction('mint', post.id)} className="w-full text-left px-3 py-2 text-sm text-yellow-400 hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                            <Coins className="w-4 h-4" /> Mint Post
+                          </button>
+                          <button onClick={() => handleAction('shiftMine', post.id)} className="w-full text-left px-3 py-2 text-sm text-purple-400 hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                            <Pickaxe className="w-4 h-4" /> Shift Mine Post
+                          </button>
+                        </>
+                      )}
+                      
+                      <button onClick={() => handleAction('mute', post.id)} className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                        <VolumeX className="w-4 h-4" /> Mute User
+                      </button>
+                      <button onClick={() => handleAction('report', post.id)} className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 rounded-lg flex items-center gap-2">
+                        <Flag className="w-4 h-4" /> Report Post
+                      </button>
+                      
+                      {!post.isMinted && !post.isShiftMined && post.author === 'Rainbow Strongman' && (
+                        <button onClick={() => handleAction('delete', post.id)} className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-slate-700 rounded-lg flex items-center gap-2 border-t border-slate-700 mt-1 pt-2">
+                          <X className="w-4 h-4" /> Delete Post
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <p className={`text-sm leading-relaxed mb-4 ${themeMode === 'light' ? 'text-slate-800' : 'text-slate-200'}`}>
+                  {post.content}
+                </p>
+
+                {/* SC and Badges Display */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
+                    <span className="text-xs font-bold text-blue-400">SC ${post.scValue.toFixed(2)}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${scHolding.isOnChain ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
+                      {scHolding.isOnChain ? 'On-Chain' : 'Off-Network'}
+                    </span>
+                  </div>
+                  {post.isMinted && (
+                    <div className="px-3 py-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-xs font-bold text-yellow-500 flex items-center gap-1">
+                      <Coins className="w-3.5 h-3.5" /> Minted NFT
+                    </div>
+                  )}
+                  {post.isShiftMined && (
+                    <div className="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs font-bold text-purple-400 flex items-center gap-1">
+                      <Pickaxe className="w-3.5 h-3.5" /> Shift Mined
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Bar */}
+                <div className={`flex items-center justify-between pt-3 border-t ${themeMode === 'light' ? 'border-slate-100' : 'border-slate-800'}`}>
+                  <div className="flex gap-4">
+                    <button className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-500 transition-colors">
+                      <Heart className="w-4 h-4" /> {post.likes}
+                    </button>
+                    <button className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-500 transition-colors">
+                      <MessageSquare className="w-4 h-4" /> {post.comments}
+                    </button>
+                    <button onClick={() => handleTipPost(post.id, 1.00)} className="flex items-center gap-1.5 text-xs text-emerald-500 hover:bg-emerald-500/10 px-2 py-1 rounded transition-colors font-medium">
+                      +$1 Tip
+                    </button>
+                  </div>
+                  
+                  {/* Dedicated Share Button */}
+                  <button onClick={() => handleAction('share', post.id)} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-500 transition-colors bg-slate-800/50 hover:bg-slate-800 px-3 py-1.5 rounded-lg">
+                    <Share className="w-3.5 h-3.5" /> Share
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ================= LAYER: SHIFT COIN TREASURY & TRADING ================= */}
+        {}
+        {activeLayer === 'trading' && (
+          <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
+            <div className={`p-8 rounded-3xl border ${themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                <Coins className="w-6 h-6 text-purple-500" /> Shift Coin (SC) Treasury
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* SC Wallet Card */}
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-900/50 to-slate-900 border border-purple-500/30">
+                  <h3 className="text-sm font-medium text-slate-300 mb-4">Your SC Holding</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <span className="text-sm text-slate-400">In-network value:</span>
+                      <span className="text-3xl font-bold text-white">${scHolding.currentValue.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-b border-slate-700/50 pb-2">
+                      <span className="text-slate-400">You paid:</span>
+                      <span className="text-white">${(scHolding.entryValue / 2).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-b border-slate-700/50 pb-2">
+                      <span className="text-slate-400">ROI:</span>
+                      <span className="text-emerald-400 font-bold">+ {(((scHolding.currentValue - (scHolding.entryValue/2)) / (scHolding.entryValue/2)) * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm border-b border-slate-700/50 pb-2">
+                      <span className="text-slate-400">Network Status:</span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${scHolding.isOnChain ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                        {scHolding.isOnChain ? 'ON-CHAIN' : 'OFF-NETWORK'}
+                      </span>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <div className="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>Progress to Ceiling</span>
+                        <span>${scHolding.ceiling.toFixed(2)} Cap</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-purple-500" style={{ width: `${(scHolding.currentValue / scHolding.ceiling) * 100}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Purchase Actions */}
+                <div className="space-y-4">
+                  <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800">
+                    <h3 className="font-bold mb-2">Buy SC with Fiat</h3>
+                    <p className="text-xs text-slate-400 mb-4">Rule 1: Pay $X, receive $2X in-network value instantly. Remains off-network until first sale.</p>
+                    <button onClick={() => setActiveModal('buyFiat')} className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-colors">
+                      Purchase via Fiat
+                    </button>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none"><Zap className="w-16 h-16" /></div>
+                    <h3 className="font-bold mb-2 text-emerald-400">Buy SC with Ethereum</h3>
+                    <p className="text-xs text-slate-400 mb-4">Rule 3: Pay ETH, get 2X value AND immediate On-Chain status. No treasury cut.</p>
+                    <button onClick={() => setActiveModal('buyEth')} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors">
+                      Purchase via ETH
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= LAYER: DEPLOYMENT CENTER ================= */}
+        {}
+        {activeLayer === 'downloads' && (
+          <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-bold mb-3">Deployment & Downloads Center</h2>
+              <p className="text-slate-500">Access the raw ISOs, Mac payloads, and SOO configurations.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { title: 'SOO Linux Distro', version: 'v0.6.0-stable', size: '2.4 GB', type: '.ISO Image', color: 'from-blue-600 to-cyan-600', icon: Server },
+                { title: 'MacOS Workspace Payload', version: 'OSX-KVM Script', size: '15 MB', type: '.SH / .DMG', color: 'from-purple-600 to-pink-600', icon: Monitor },
+                { title: 'USB Boot Creator', version: 'v1.2.0', size: '45 MB', type: 'Executable', color: 'from-emerald-600 to-teal-600', icon: HardDrive }
+              ].map((item, i) => (
+                <div key={i} className={`rounded-3xl border p-6 flex flex-col items-center text-center transition-transform hover:-translate-y-2 ${themeMode === 'light' ? 'bg-white border-slate-200 shadow-xl shadow-slate-200' : 'bg-slate-900 border-slate-800'}`}>
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white mb-6 shadow-lg`}>
+                    <item.icon className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-bold mb-1">{item.title}</h3>
+                  <div className="flex gap-2 text-xs font-mono text-slate-500 mb-6">
+                    <span className="bg-slate-800/50 px-2 py-1 rounded">{item.version}</span>
+                    <span className="bg-slate-800/50 px-2 py-1 rounded">{item.size}</span>
+                  </div>
+                  <button onClick={() => showToast(`Initiating download for ${item.title}...`)} className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                    <Download className="w-4 h-4" /> Download {item.type}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className={`mt-8 p-6 rounded-2xl border ${themeMode === 'light' ? 'bg-amber-50 border-amber-200' : 'bg-amber-900/10 border-amber-500/20'}`}>
+              <h3 className="font-bold text-amber-500 flex items-center gap-2 mb-2"><AlertTriangle className="w-5 h-5" /> Mockup Note</h3>
+              <p className={`text-sm ${themeMode === 'light' ? 'text-amber-800' : 'text-amber-200/70'}`}>
+                This is the interactive React mockup. In the live production environment, these buttons connect directly to the AWS S3 buckets containing the compiled binaries and disk images for the Soul Operating System.
+              </p>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* ================= MODALS & PANELS ================= */}
+
+      {/* Share Side Panel */}
+      {sharePanelOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSharePanelOpen(false)} />
+          <div className={`w-full max-w-sm h-full shadow-2xl relative flex flex-col animate-in slide-in-from-right duration-300 ${themeMode === 'light' ? 'bg-white' : 'bg-slate-900'}`}>
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <h3 className="font-bold text-lg">Share this post</h3>
+              <button onClick={() => setSharePanelOpen(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 grid grid-cols-2 gap-4">
+              {[
+                { label: 'Copy Link', action: () => showToast('Link Copied!') },
+                { label: 'Send in DM', action: () => showToast('DM Sent') },
+                { label: 'Share to Feed', action: () => showToast('Reposted to your feed') },
+                { label: 'Share to Public', action: () => showToast('Shared to public tier') },
+              ].map((opt, i) => (
+                <button key={i} onClick={opt.action} className="p-4 rounded-xl border border-slate-700 hover:bg-slate-800 flex flex-col items-center justify-center gap-2 text-sm text-slate-300 transition-colors">
+                  <Share className="w-5 h-5 text-purple-400" />
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-auto p-6 bg-slate-950 border-t border-slate-800">
+              <p className="text-xs text-slate-500 font-mono mb-2">POST PREVIEW:</p>
+              <p className="text-sm text-slate-300 line-clamp-2 italic">"{posts.find(p => p.id === selectedPostId)?.content}"</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Modals (Mint, Shift Mine, Buy SC) */}
+      {activeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setActiveModal(null)} />
+          
+          <div className={`relative w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 ${themeMode === 'light' ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-700'}`}>
+            
+            {activeModal === 'mint' && (
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Coins className="text-yellow-500" /> Mint This Post as NFT</h3>
+                <div className="p-4 bg-slate-950 rounded-xl mb-6 text-sm text-slate-400 border border-slate-800">
+                  <p className="italic mb-2 line-clamp-3">"{posts.find(p => p.id === selectedPostId)?.content}"</p>
+                  <p className="text-yellow-500 font-bold mt-4">Minting fee: 15 RC</p>
+                </div>
+                <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                  This post will become a permanent on-chain NFT and will be listed in the LTNFThifty marketplace. Once minted, this post cannot be deleted.
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={() => setActiveModal(null)} className="flex-1 py-2.5 rounded-xl border border-slate-700 font-medium">Cancel</button>
+                  <button onClick={confirmMint} className="flex-1 py-2.5 rounded-xl bg-yellow-500 text-black font-bold">Mint Now</button>
+                </div>
+              </div>
+            )}
+
+            {activeModal === 'shiftMine' && (
+              <div className="p-6 border-t-4 border-red-500">
+                <h3 className="text-xl font-bold mb-2 flex items-center gap-2 text-red-500"><AlertTriangle /> PERMANENT ACTION</h3>
+                <p className="text-sm text-slate-300 font-medium mb-4">Read before continuing.</p>
+                
+                <ul className="text-xs text-slate-400 space-y-2 mb-6 list-disc pl-4">
+                  <li>Shift Mining registers this post as permanent proof-of-contribution.</li>
+                  <li>This post will NEVER be deleted and cannot be edited.</li>
+                  <li>Its content hash is recorded on-chain.</li>
+                  <li className="text-purple-400 font-bold">Reward: SC based on content score & RSNX points.</li>
+                </ul>
+
+                <div className="mb-6">
+                  <label className="text-xs font-mono text-slate-500 mb-2 block">Type CONFIRM to proceed:</label>
+                  <input type="text" placeholder="CONFIRM" className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm focus:border-red-500 outline-none" id="confirmInput" onChange={(e) => {
+                    document.getElementById('mineBtn').disabled = e.target.value !== 'CONFIRM';
+                  }}/>
+                </div>
+
+                <div className="flex gap-3">
+                  <button onClick={() => setActiveModal(null)} className="flex-1 py-2.5 rounded-xl border border-slate-700 font-medium">Cancel</button>
+                  <button id="mineBtn" disabled onClick={confirmShiftMine} className="flex-1 py-2.5 rounded-xl bg-red-600 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold transition-colors">Mine Post</button>
+                </div>
+              </div>
+            )}
+
+            {activeModal === 'buyFiat' && (
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-4">Buy SC via Fiat</h3>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="text-xs text-slate-400">Amount (USD)</label>
+                    <input type="number" defaultValue="25" id="fiatAmount" className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 mt-1 outline-none focus:border-blue-500" />
+                  </div>
+                  <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
+                    <strong>Rule 1:</strong> You will receive 2x in-network value instantly.
+                  </div>
+                </div>
+                <button onClick={() => handleBuySC('fiat', Number(document.getElementById('fiatAmount').value))} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold">Confirm Purchase</button>
+              </div>
+            )}
+
+            {activeModal === 'buyEth' && (
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-4 text-emerald-400">Buy SC via Ethereum</h3>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="text-xs text-slate-400">Amount (ETH)</label>
+                    <input type="number" step="0.1" defaultValue="0.1" id="ethAmount" className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 mt-1 outline-none focus:border-emerald-500" />
+                  </div>
+                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+                    <strong>Rule 3:</strong> ETH entry grants instant On-Chain status. No treasury cut.
+                  </div>
+                </div>
+                <button onClick={() => handleBuySC('eth', Number(document.getElementById('ethAmount').value))} className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">Confirm ETH Transaction</button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
